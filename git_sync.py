@@ -11,11 +11,16 @@ from dotenv import load_dotenv
 
 # Load environment variables from a .env file
 load_dotenv()
+# Check if WATCH_FOLDER is provided as a command-line argument
+if len(sys.argv) > 1:
+    WATCH_FOLDER = sys.argv[1]
+else:
+    # Fallback to the WATCH_FOLDER from the .env file or a default value
+    WATCH_FOLDER = os.getenv('WATCH_FOLDER', r'G:\Dekel\Computer Info\test6')
 
 
-GIT_LFS_TRACK = os.getenv('GIT_LFS_TRACK',[]) 
-WATCH_FOLDER = os.getenv('WATCH_FOLDER', r'/Users/aloncohen/Documents/gitbox')
-
+GIT_LFS_TRACK = os.getenv('GIT_LFS_TRACK',[])
+ 
 
 PULL_INTERVAL_MINUTES = 1
 
