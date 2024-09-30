@@ -43,7 +43,7 @@ def run_command(command):
         return True, result.stdout.strip()
     except subprocess.CalledProcessError as e:
         error_message = f"Error executing command: {e}"
-        if e.stderr.strip():
+        if e.stderr and type(e.stderr)==str and e.stderr.strip():
             error_message += f"\nError output: {e.stderr.strip()}"
             print(f"Error output: {e.stderr.strip()}")
         print(error_message)
