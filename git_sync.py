@@ -12,12 +12,10 @@ from dotenv import load_dotenv
 # Load environment variables from a .env file
 load_dotenv()
 
-# Check if WATCH_FOLDER is provided as a command-line argument
-if len(sys.argv) > 1:
-    WATCH_FOLDER = sys.argv[1]
-else:
-    # Fallback to the WATCH_FOLDER from the .env file or a default value
-    WATCH_FOLDER = os.getenv('WATCH_FOLDER', r'/Users/aloncohen/Documents/gitbox')
+
+GIT_LFS_TRACK = os.getenv('GIT_LFS_TRACK',[]) 
+WATCH_FOLDER = os.getenv('WATCH_FOLDER', r'/Users/aloncohen/Documents/gitbox')
+
 
 PULL_INTERVAL_MINUTES = 1
 
@@ -48,6 +46,11 @@ def run_command(command):
             print(f"Error output: {e.stderr.strip()}")
         print(error_message)
         return False, error_message
+    
+def add_git_lfs_tracking ():
+    for i in GIT_LFS_TRACK:
+       run_command(f"git lfs track {i}") 
+    
 def check_if_ahead():
     # Check if local branch is ahead of the remote branch
     success, output = run_command(f'git -C "{WATCH_FOLDER}" status -uno')
@@ -114,6 +117,7 @@ class GitHandler(FileSystemEventHandler):
         git_sync()
 
 def main():
+    add_git_lfs_tracking()
     print(f'gitto: git sync "{WATCH_FOLDER}"')
     pull_merge_and_push()
     
