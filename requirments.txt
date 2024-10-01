@@ -1,1 +1,1 @@
-watchdogpython-dotenvplyer
+watchdog==5.0.3python-dotenv==1.0.0plyer==2.1.0
