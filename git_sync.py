@@ -16,11 +16,11 @@ if len(sys.argv) > 1:
     WATCH_FOLDER = sys.argv[1]
 else:
     # Fallback to the WATCH_FOLDER from the .env file or a default value
-    WATCH_FOLDER = os.getenv('WATCH_FOLDER', r'G:\Dekel\Computer Info\test6')
+    WATCH_FOLDER = os.getenv('WATCH_FOLDER', 'your/folder/path')
 
 
-GIT_LFS_TRACK = os.getenv('GIT_LFS_TRACK',[])
- 
+GIT_LFS_TRACK = os.getenv('GIT_LFS_TRACK', [])
+GIT_LFS_TRACK = GIT_LFS_TRACK.split(',')
 
 PULL_INTERVAL_MINUTES = 1
 
@@ -54,7 +54,8 @@ def run_command(command):
     
 def add_git_lfs_tracking ():
     for i in GIT_LFS_TRACK:
-       run_command(f"git lfs track {i}") 
+       run_command(f'git -C {WATCH_FOLDER} lfs track "{i}"')
+    run_command(f'git -C "{WATCH_FOLDER}" commit -m "Auto-commit: Added lfs tracking"')   
     
 def check_if_ahead():
     # Check if local branch is ahead of the remote branch
@@ -154,3 +155,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
