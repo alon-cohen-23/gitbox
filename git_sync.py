@@ -9,6 +9,7 @@ from watchdog.utils.event_debouncer import EventDebouncer
 from plyer import notification
 from dotenv import load_dotenv
 
+
 # Load environment variables from a .env file
 load_dotenv()
 # Check if WATCH_FOLDER is provided as a command-line argument
@@ -38,31 +39,40 @@ def show_notification(title, message):
         timeout=15
     )
 def run_command(command):
+    #Executes a command in the shell, captures and returns the output or any errors encountered.
+      
     try:
         print(command)
         result = subprocess.run(command, check=True, shell=True, capture_output=True, text=True)
         if result.stdout.strip():
             print(f"Command output: {result.stdout.strip()}")
         return True, result.stdout.strip()
+    
     except subprocess.CalledProcessError as e:
         error_message = f"Error executing command: {e}"
+        
         if e.stderr and type(e.stderr)==str and e.stderr.strip():
             error_message += f"\nError output: {e.stderr.strip()}"
             print(f"Error output: {e.stderr.strip()}")
+        
         print(error_message)
         return False, error_message
     
 def add_git_lfs_tracking ():
+    
     for i in GIT_LFS_TRACK:
        run_command(f'git -C {WATCH_FOLDER} lfs track "{i}"')
     run_command(f'git -C "{WATCH_FOLDER}" commit -m "Auto-commit: Added lfs tracking"')   
     
 def check_if_ahead():
-    # Check if local branch is ahead of the remote branch
+    #Checks if the local Git branch is ahead of the remote branch
+    
     success, output = run_command(f'git -C "{WATCH_FOLDER}" status -uno')
+    
     if success and "Your branch is ahead of" in output:
         print("Local branch is ahead of remote. Pushing changes...")
         success, push_output = run_command(f'git -C "{WATCH_FOLDER}" push')
+        
         if not success:
             msg = "Push failed while trying to sync local changes."
             show_notification("Push Failed", msg + '\n' + push_output)
@@ -70,20 +80,29 @@ def check_if_ahead():
     return False
 
 def git_sync():
+   #  Detects and stages file changes, commits them, and pushes to the remote repository.
     with git_lock:
+            
             # Changes detected, proceed with git operations
             if run_command(f'git -C "{WATCH_FOLDER}" add .')[0]:
+                
                 if run_command(f'git -C "{WATCH_FOLDER}" commit -m "Auto-commit: Syncing changes"')[0]:
                     success, push_output = run_command(f'git -C "{WATCH_FOLDER}" push')
+                    
                     if not success:
                         # If push failed, notify and attempt to pull and merge
                         msg = "Push failed, attempting to pull and merge..."
                         print(msg)
                         show_notification("Push Failed", msg + '\n' + push_output)
                         pull_merge_and_push()
+           
             else:
                 print("No changes detected.")
+
 def pull_merge_and_push():
+    """Attempts to pull the latest changes from the remote repository. 
+    If successful, it pushes any new commits to sync with the remote. It alerts on any push failures."""
+    
     with git_lock:
         print("Attempting to pull and merge...")
         success, output = run_command(f'git -C "{WATCH_FOLDER}" pull')
@@ -92,23 +111,29 @@ def pull_merge_and_push():
             print(msg)
             show_notification("Pull Failed", msg + '\n' + output)
             return  # Stop further operations if the pull fails
+        
         # Check if the pull resulted in a merge commit (i.e., no conflicts)
         if "Merge made by the" in output or "Fast-forward" in output:
             print("Merge was successful with no conflicts. Pushing changes...")
             success, push_output = run_command(f'git -C "{WATCH_FOLDER}" push')
+            
             if not success:
                 show_notification("Push After Merge Failed", push_output)
+
 def pull_and_merge():
+    
     while not stop_event.is_set():
         time.sleep(PULL_INTERVAL_MINUTES * 60)  # Sleep first to allow initial commits
         pull_merge_and_push()
 
 class GitHandler(FileSystemEventHandler):
+    
     def __init__(self, debounce_interval_seconds=5):
         self.debouncer = EventDebouncer(debounce_interval_seconds, self.handle_events)
         self.debouncer.start()
 
     def on_any_event(self, event):
+        # Responds to any filesystem event (e.g., file creation, modification, deletion).
         if event.is_directory:
             return None
 
@@ -123,6 +148,15 @@ class GitHandler(FileSystemEventHandler):
         git_sync()
 
 def main():
+    """
+    Serves as the main entry point for the script.
+    
+    Initializes the environment,adds Git LFS tracking, performs the initial Git synchronization,
+    checks if the local branch is ahead, and sets up a file watcher for ongoing sync. 
+
+    """
+    
+    
     add_git_lfs_tracking()
     print(f'gitto: git sync "{WATCH_FOLDER}"')
     pull_merge_and_push()
@@ -146,6 +180,7 @@ def main():
     try:
         while True:
             time.sleep(1)
+    
     except KeyboardInterrupt:
         print("KeyboardInterrupt detected, stopping...")
         stop_event.set()  # Signal the pull thread to stop
